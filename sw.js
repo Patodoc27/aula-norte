@@ -15,11 +15,25 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const isDoc = e.request.mode === 'navigate' || e.request.destination === 'document';
+  if (isDoc) {
+    // network-first so updates reach the installed app, cache as offline fallback
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put('./index.html', copy));
+        }
+        return res;
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(hit =>
       hit ||
       fetch(e.request).then(res => {
-        if (res.ok && (e.request.url.startsWith('https://cdn.jsdelivr.net') || e.request.url.startsWith(self.location.origin))) {
+        if (res.ok) {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, copy));
         }
