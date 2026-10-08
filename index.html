@@ -1574,6 +1574,9 @@ function viewConfig(el){
  <div class="card"><h3>${ico('spark')} Personalizar</h3>
   <div class="fld"><label>Color de acento de la app</label>
   <div class="row wrap" style="gap:10px">${ACCENTS.map(a=>`<button class="swatch${(S.settings.accent||'#1F7A8C')===a[1]?' on':''}" style="background:${a[1]}" title="${a[0]}" aria-label="${a[0]}" onclick="setAccent('${a[1]}')"></button>`).join('')}</div></div></div>
+ <div class="card"><h3>${ico('dl')} Instalar en tu teléfono</h3>
+  <p class="muted">Teniéndola instalada la abrís como una app, con su ícono, y funciona aunque no tengas internet.</p>
+  <div id="installZone">${installHelp()}</div></div>
  <div class="card"><h3>${ico('dl')} Tus datos</h3>
   <p class="muted">Todo queda guardado en este teléfono. Hacé copia de seguridad de vez en cuando.</p>
   <div class="row wrap"><button class="btn sm teal" onclick="backup()">${ico('dl')} Copia de seguridad</button>
@@ -1695,6 +1698,22 @@ function restore(){
   r.onload=e=>{try{const d=JSON.parse(e.target.result);if(!d.courses)throw new Error('no');S=d;if(S.onboarded===undefined)S.onboarded=true;applyTheme();save();render();toast('Copia restaurada')}catch(x){toast('Archivo inválido')}};
   r.readAsText(f)};
  inp.click();
+}
+
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const z=$('#installZone');if(z)z.innerHTML=installHelp()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;const z=$('#installZone');if(z)z.innerHTML=installHelp()});
+function installHelp(){
+ if(deferredInstall)return '<button class="btn green big" onclick="installApp()">'+ico('dl')+' Instalar Aula Norte</button>';
+ if(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)return '<p class="muted">Ya está instalada en este teléfono.</p>';
+ const ios=/iP(hone|ad|od)/.test(navigator.userAgent||'');
+ if(ios)return '<p class="muted">En Safari: tocá el botón <b>Compartir</b> y elegí <b>“Agregar a pantalla de inicio”</b>.</p>';
+ return '<p class="muted">Abrila en <b>Chrome</b>, tocá el menú <b>⋮</b> y elegí <b>Instalar app</b> o <b>Agregar a pantalla principal</b>.</p>';
+}
+function installApp(){
+ if(!deferredInstall)return;
+ deferredInstall.prompt();
+ deferredInstall.userChoice.then(()=>{deferredInstall=null;const z=$('#installZone');if(z)z.innerHTML=installHelp()});
 }
 
 /* expose for console tests */
